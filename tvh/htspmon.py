@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2012 Adam Sutton <dev@adamsutton.me.uk>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+"""
+Connect to a HTSP server and monitor the asynchronous traffic
+"""
+
+# System imports
+import os
+import sys
+from optparse import OptionParser
+
+# System path
+
+# TVH imports
+from htsp import HTSPClient
+import log
+
+try:
+
+    # Command line
+    optp = OptionParser()
+    optp.add_option('-a', '--host', default='localhost',
+                    help='Specify HTSP server hostname')
+    optp.add_option('-o', '--port', default=9982, type='int',
+                    help='Specify HTSP server port')
+    optp.add_option('-u', '--user', default=None,
+                    help='Specify HTSP authentication username')
+    optp.add_option('-p', '--passwd', default=None,
+                    help='Specify HTSP authentication password')
+    optp.add_option('-e', '--epg', default=False, action='store_true',
+                    help='Get async EPG updates')
+    optp.add_option('-t', '--update', default=None, type='int',
+                    help='Specify when to receive updates from')
+    (opts, args) = optp.parse_args()
+
+    # Connect
+    htsp = HTSPClient((opts.host, opts.port))
+    msg = htsp.hello()
+    log.info('connected to %s [%s]' % (msg['servername'], msg['serverversion']))
+    log.info('using protocol v%d' % htsp._version)
+    cap = []
+    if 'servercapability' in msg:
+        cap = msg['servercapability']
+    log.info('capabilities [%s]' % ','.join(cap))
+
+    # Authenticate
+    if opts.user:
+        htsp.authenticate(opts.user, opts.passwd)
+        log.info('authenticated as %s' % opts.user)
+
+    print opts
+
+    # Enable async
+    args = {}
+    if opts.epg:
+        args['epg'] = 1
+    if opts.update != None:
+        args['lastUpdate'] = opts.update
+    htsp.enableAsyncMetadata(args)
+    log.info('enabled async data')
+
+    # Process messages
+    #while True:
+    #    msg = htsp.recv()
+    #    log.info('message:')
+    #    log.info(msg, pretty=True)
+
+except KeyboardInterrupt:
+    pass
+except Exception, e:
+    log.error(e)
+    sys.exit(1)
+
+# ############################################################################
+# Editor Configuration
+#
+# vim:sts=2:ts=2:sw=2:et
+# ############################################################################
