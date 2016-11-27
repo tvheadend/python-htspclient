@@ -65,7 +65,9 @@ Update channelnumbers based on a list:
 
 ### Usage ###
 
-First, edit the channel list in ```map_channelnumbers.py```! Your current settings will be overridden.
+First, edit the channel list in ```map_channelnumbers.py```! 
+
+*Your current settings will be overridden.*
 
 In your ```htsp``` virtualenv run:
 
