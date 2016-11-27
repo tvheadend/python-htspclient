@@ -86,8 +86,10 @@ class HTSPClient(object):
 
     # Authenticate
     def authenticate(self, user, passwd=None):
+        user = str(user)
         self._user = user
         if passwd:
+            passwd = str(passwd)
             self._pass = htsp_digest(user, passwd, self._auth)
         self.send('authenticate')
         resp = self.recv()
