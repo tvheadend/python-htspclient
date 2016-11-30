@@ -1,4 +1,17 @@
 class HTSPApi(object):
+    EPG_IGNORE = -1
+    EPG_DISABLE = 0
+    EPG_ENABLE = 0
+    MUX_ENABLE = 1
+    MUX_DISABLE = 0
+    MUX_SCAN_RESULT_NONE = 0
+    MUX_SCAN_RESULT_OK = 1
+    MUX_SCAN_RESULT_FAILED = 2
+    MUX_SCAN_STATUS_INACTIVE = 0
+    MUX_SCAN_STATUS_PENDING = 1
+    #MUX_SCAN_STATUS_INACTIVE = 0
+    #MUX_SCAN_STATUS_INACTIVE = 0
+
     def __init__(self, htsp):
         self.htsp = htsp
 
@@ -53,6 +66,11 @@ class HTSPApi(object):
                 if 'services' in paramdict.values():
                     found_services.extend(paramdict['value'])
         return found_services
+
+    def get_muxes_grid(self, kwargs={}):
+        self.htsp.send('api', {'path': 'mpegts/mux/grid', 'args': kwargs})
+        msg = self.htsp.recv()
+        return msg['response']['entries']
 
     def create_channel(self, name, services=[], tags=[], epg_parent="", enabled=True, number=0):
         self.htsp.send('api', {
@@ -111,8 +129,6 @@ class HTSPApi(object):
         args = {
             'node': nodes
         }
-
-        print " - ", args
 
         self.htsp.send('api', {
             'path': 'idnode/save',
