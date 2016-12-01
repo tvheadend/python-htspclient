@@ -14,7 +14,7 @@ htspapi = HTSPApi(htsp=htsp)
 
 search_channelname = raw_input("Search channel name: ")
 # found_channels = search_channelnames(search_channelname)
-found_channels_grid = htspapi.search_channelsnames_bygrid(search_channelname)
+found_channels_grid = htspapi.search_channelsnames_bygrid(lookup=search_channelname)
 used_channels = []
 # for c in found_channels:
 #    channeluuid = c['key']
@@ -28,6 +28,8 @@ found_services = []
 for chan in used_channels:
     services = htspapi.get_serviceuuids_from_channeluuid(chan)
     found_services.extend(services)
+
+print "Found", len(found_channels_grid), "channels with this name:"
 
 for chan in found_channels_grid:
     service_names = []

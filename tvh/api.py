@@ -1,3 +1,6 @@
+from tvh import utils
+
+
 class HTSPApi(object):
     EPG_IGNORE = -1
     EPG_DISABLE = 0
@@ -30,11 +33,16 @@ class HTSPApi(object):
 
         return found
 
-    def search_channelsnames_bygrid(self, lookup='', services=''):
+    def get_channels_grid(self, kwargs={}):
+        self.htsp.send('api', {'path': 'channel/grid', 'args': kwargs})
+        msg = self.htsp.recv()
+        return msg['response']['entries']
+
+    def search_channelsnames_bygrid(self, lookup='', services=None):
         """
         Fetch the channel grid with filter parameters
         """
-        self.htsp.send('api', {'path': 'channel/grid', 'args': {
+        kwargs = {
             'start': 0,
             'limit': 999999,
             'sort': 'name',
@@ -44,17 +52,19 @@ class HTSPApi(object):
                     "type": "string",
                     "value": lookup,
                     "field": "name"
-                },
-                {
-                    "type": "string",
-                    "value": services,
-                    "field": "services"
                 }
             ],
             'all': 1
-        }})
-        msg = self.htsp.recv()
-        return msg['response']['entries']
+        }
+        if services:
+            kwargs['filter'].append({
+                "type": "string",
+                "value": services,
+                "field": "services"
+            })
+
+        entries = self.get_channels_grid(kwargs=kwargs)
+        return entries
 
     def get_serviceuuids_from_channeluuid(self, uuid):
         self.htsp.send('api', {'path': 'idnode/load', 'args': {'uuid': uuid, 'meta': 1}})
@@ -101,10 +111,10 @@ class HTSPApi(object):
         })
         return self.htsp.recv()
 
-    def get_idnode_value(self, uuid):
+    def get_idnode_value(self, uuid, path='response.entries.0.text'):
         self.htsp.send('api', {'path': 'idnode/load', 'args': {'uuid': uuid, 'meta': 0}})
         msg = self.htsp.recv()
-        return msg['response']['entries'][0]["text"]
+        return utils.getindex(msg, dotted_path=path)
 
     def enable_channels(self, uuids, enabled=True):
         nodes = []
