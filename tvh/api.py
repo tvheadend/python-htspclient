@@ -82,19 +82,23 @@ class HTSPApi(object):
         msg = self.htsp.recv()
         return msg['response']['entries']
 
-    def create_channel(self, name, services=[], tags=[], epg_parent="", enabled=True, number=0):
+    def create_channel(self, name, services=[], tags=[], enabled=True, number=0, epg_parent=None):
+        conf_args = {
+            'conf': {
+                'name': name,
+                'enabled': 'true',
+                'number': number,
+                'services': services,
+                'tags': tags,
+                # 'bouquet': '',
+            }
+        }
+        if epg_parent:
+            conf_args['conf']['epg_parent'] = epg_parent
+
         self.htsp.send('api', {
             'path': 'channel/create',
-            'args': {
-                'conf': {
-                    'name': name,
-                    'enabled': 'true',
-                    'number': number,
-                    'services': services,
-                    'tags': tags,
-                    # 'bouquet': '',
-                }
-            }
+            'args': conf_args
 
         })
         return self.htsp.recv()
@@ -145,5 +149,18 @@ class HTSPApi(object):
             'args': args
         })
         return self.htsp.recv()
+
+    def get_epg(self, uuid='', title='', channeltag=''):
+        args = {
+            'channel': uuid,
+            'title': title,
+            'channelTag': channeltag
+        }
+        self.htsp.send('api', {
+            'path': 'epg/events/grid',
+            'args': args
+        })
+        msg = self.htsp.recv()
+        return msg['response']['entries']
 
 

@@ -31,6 +31,8 @@ for chan in used_channels:
 
 print "Found", len(found_channels_grid), "channels with this name:"
 
+used_channel_names = []
+
 for chan in found_channels_grid:
     service_names = []
     service_uuids = chan['services']
@@ -38,9 +40,11 @@ for chan in found_channels_grid:
         service_names.append(htspapi.get_idnode_value(uuid=suuid))
     service_name = "; ".join(service_names)
     chan['service_name'] = service_name
+    chan_repr = '"%(name)s" @ %(service_name)s' % chan
     use = raw_input('- Use channel "%(name)s" @ %(service_name)s (%(number)d)? [yN]: ' % chan)
     if use:
         used_channels.append(chan['uuid'])
+        used_channel_names.append(chan_repr)
         found_services.extend(chan['services'])
 
 # remove duplicates
@@ -51,7 +55,19 @@ merged_channel_name = raw_input("Name of new channel (%d merged services): " % l
 merged_channel_nr = raw_input("Number of new channel: ")
 number = int(merged_channel_nr)
 
-htspapi.create_channel(merged_channel_name, services=found_services, number=number)
+for i, chanuuid in enumerate(used_channels, start=1):
+    chan_epg = htspapi.get_epg(uuid=chanuuid)
+    chan_repr = used_channel_names[i - 1]
+    if len(chan_epg) > 0:
+        print "- %d | %d EPG entries, Name=%s" % (i, len(chan_epg), chan_repr)
+
+reuse_epg_index = raw_input("Number of EPG channel to reuse (0=disabled): ")
+reuse_epg_index = int(reuse_epg_index)
+epg_parent = None
+if reuse_epg_index > 0:
+    epg_parent = used_channels[reuse_epg_index - 1]
+
+htspapi.create_channel(merged_channel_name, services=found_services, number=number, epg_parent=epg_parent)
 
 disable_existing_channels = raw_input("Disable existing %d channels [yN]: " % len(found_services))
 if disable_existing_channels == "y":
