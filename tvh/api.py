@@ -131,7 +131,7 @@ class HTSPApi(object):
             'path': 'idnode/save',
             'args': args
         })
-        print "enable_channels returned", self.htsp.recv()
+        print("enable_channels returned", self.htsp.recv())
 
     def update_channels(self, uuids, data):
         nodes = []
@@ -150,15 +150,10 @@ class HTSPApi(object):
         })
         return self.htsp.recv()
 
-    def get_epg(self, uuid='', title='', channeltag=''):
-        args = {
-            'channel': uuid,
-            'title': title,
-            'channelTag': channeltag
-        }
+    def get_epg(self, kwargs={}):
         self.htsp.send('api', {
             'path': 'epg/events/grid',
-            'args': args
+            'args': kwargs
         })
         msg = self.htsp.recv()
         return msg['response']['entries']
