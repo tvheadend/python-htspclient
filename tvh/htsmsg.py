@@ -26,13 +26,12 @@ import sys
 # ###########################################################################
 
 def int2bin(i):
-    return chr(i >> 24 & 0xFF) + chr(i >> 16 & 0xFF) \
-           + chr(i >> 8 & 0xFF) + chr(i & 0xFF)
+    return bytes([i >> 24 & 0xFF, i >> 16 & 0xFF, i >> 8 & 0xFF, i & 0xFF])
 
 
 def bin2int(d):
-    return (ord(d[0]) << 24) + (ord(d[1]) << 16) \
-           + (ord(d[2]) << 8) + ord(d[3])
+    return (d[0] << 24) + (d[1] << 16) \
+           + (d[2] << 8) + d[3]
 
 
 def uuid2int(uuid):
@@ -68,12 +67,7 @@ HMF_BIN = 4
 HMF_LIST = 5
 HMF_DBL = 6
 HMF_BOOL = 7
-
-
-# Light wrapper for binary type
-class HMFBin(str):
-    pass
-
+HMF_UUID = 8
 
 # Convert python to HTSMSG type
 def hmf_type(f):
@@ -85,7 +79,7 @@ def hmf_type(f):
         return HMF_STR
     elif type(f) == int:
         return HMF_S64
-    elif type(f) == HMFBin:
+    elif type(f) == bytes:
         return HMF_BIN
     elif type(f) == bool:
         return HMF_BOOL
@@ -96,7 +90,7 @@ def hmf_type(f):
 # Size for field
 def _binary_count(f):
     ret = 0
-    if type(f) in [str, HMFBin]:
+    if type(f) in [str, bytes]:
         ret = ret + len(f)
     elif type(f) in [bool]:
         ret = ret + 1
@@ -128,15 +122,14 @@ def binary_count(msg):
 
 # Write out field in binary form
 def binary_write(msg):
-    ret = ''
+    ret = b''
     lst = type(msg) == list
     for f in msg:
-        na = ''
+        na = b''
         if not lst:
-            na = f
+            na = f.encode('utf-8')
             f = msg[f]
-        ret = ret + chr(hmf_type(f))
-        ret = ret + chr(len(na) & 0xFF)
+        ret = ret + bytes([hmf_type(f), len(na) & 0xFF])
         l = _binary_count(f)
         ret = ret + int2bin(l)
         ret = ret + na
@@ -144,12 +137,14 @@ def binary_write(msg):
         if type(f) in [list, dict]:
             ret = ret + binary_write(f)
         elif type(f) in [bool]:
-            ret = ret + chr(f)
-        elif type(f) in [str, HMFBin]:
+            ret = ret + bytes([f])
+        elif type(f) in [str]:
+            ret = ret + f.encode('utf-8')
+        elif type(f) in [bytes]:
             ret = ret + f
         elif type(f) == int:
             while f:
-                ret = ret + chr(f & 0xFF)
+                ret = ret + bytes([f & 0xFF])
                 f = f >> 8
 
         else:
@@ -171,33 +166,35 @@ def deserialize0(data, typ=HMF_MAP):
         islist = True
         msg = []
     while len(data) > 5:
-        typ = ord(data[0])
-        nlen = ord(data[1])
+        typ = data[0]
+        nlen = data[1]
         dlen = bin2int(data[2:6])
         data = data[6:]
 
-        if len < nlen + dlen: raise Exception('not enough data')
+        if len(data) < nlen + dlen: raise Exception('not enough data')
 
-        name = data[:nlen]
+        name = data[:nlen].decode('utf-8', errors='ignore')
         data = data[nlen:]
         if typ == HMF_STR:
-            item = data[:dlen]
+            item = data[:dlen].decode('utf-8', errors='ignore')
         elif typ == HMF_BIN:
-            item = HMFBin(data[:dlen])
+            item = data[:dlen]
         elif typ == HMF_S64:
             item = 0
             i = dlen - 1
             while i >= 0:
-                item = (item << 8) | ord(data[i])
+                item = (item << 8) | data[i]
                 i = i - 1
         elif typ in [HMF_LIST, HMF_MAP]:
             item = deserialize0(data[:dlen], typ)
         elif typ == HMF_BOOL:
             bool_val = data[:dlen]
             if len(bool_val) > 0:
-                item = bool(ord(bool_val))
+                item = bool(bool_val)
             else:
                 item = None
+        elif typ == HMF_UUID:
+            item = data[:dlen]
         else:
             raise Exception('invalid data type %d' % typ)
         if islist:
@@ -216,7 +213,7 @@ def deserialize(fp, rec=False):
             self._rec = rec
 
         def __iter__(self):
-            print '__iter__()'
+            print('__iter__()')
             return self
 
         def _read(self, num):
@@ -239,7 +236,7 @@ def deserialize(fp, rec=False):
                 self._fp = None
                 raise StopIteration()
             num = bin2int(tmp)
-            data = ''
+            data = b''
             while len(data) < num:
                 tmp = self._read(num - len(data))
                 if not tmp:

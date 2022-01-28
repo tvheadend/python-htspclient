@@ -22,8 +22,8 @@ Much of the code is pretty rough, but might help people get started
 with communicating with HTSP server
 """
 
-import log
-import htsmsg
+from .log import log;
+from .htsmsg import serialize, deserialize;
 
 # ###########################################################################
 # HTSP Client
@@ -35,7 +35,7 @@ HTSP_PROTO_VERSION = 25
 # Create passwd digest
 def htsp_digest(user, passwd, chal):
     import hashlib
-    ret = hashlib.sha1(passwd + chal).digest()
+    ret = hashlib.sha1(passwd.encode() + chal).digest()
     return ret
 
 
@@ -56,14 +56,14 @@ class HTSPClient(object):
     def send(self, func, args={}):
         args['method'] = func
         if self._user: args['username'] = self._user
-        if self._pass: args['digest'] = htsmsg.HMFBin(self._pass)
+        if self._pass: args['digest'] = self._pass
         log.debug('htsp tx:')
         log.debug(args, pretty=True)
-        self._sock.send(htsmsg.serialize(args))
+        self._sock.send(serialize(args))
 
     # Receive
     def recv(self):
-        ret = htsmsg.deserialize(self._sock, False)
+        ret = deserialize(self._sock, False)
         log.debug('htsp rx:')
         log.debug(ret, pretty=True)
         return ret
